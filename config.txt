@@ -1,0 +1,56 @@
+############################
+# Config file for dat-filter
+#  Use this to customize your dat-filter experience.
+#  Blank lines and comments are ignored.
+
+# No-release handling (choose either SKIP or INFER)
+NO_RELEASE
+SKIP
+
+# Title fragments to skip.
+SKIP_TITLES
+[BIOS]
+(Beta
+(Proto
+(Sample)
+[b]
+(Arcade)
+(Demo)
+(Unl)
+PowerFest
+Tester
+XBAND
+(NP)
+
+# Regions we don't want
+SKIP_REGIONS
+SPA
+GER
+FRA
+KOR
+BRA
+CAN
+SWE
+ASI
+JPN
+ITA
+CHN
+HOL
+
+# Preferred release, in descending order
+PREFERRED_REGIONS
+USA
+World
+Europe
+Japan
+Australia
+France
+Germany
+Canada
+Sweden
+Netherlands
+Italy
+Spain
+Brazil
+Korea
+China
