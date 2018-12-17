@@ -13,7 +13,7 @@ my @skip_region;
 my @preferred_region;
 
 # Debug Output
-my $debug = 1;
+use constant DEBUG => 0;
 
 # Title-to-Region Mapping,
 #  attempts to infer a release region
@@ -22,6 +22,7 @@ my %title_to_region = (
   USA => 'USA',
   Japan => 'JPN',
   Europe => 'EUR',
+
   Spain => 'SPA',
   Germany => 'GER',
   France => 'FRA',
@@ -29,10 +30,11 @@ my %title_to_region = (
   Brazil => 'BRA',
   Canada => 'CAN',
   Sweden => 'SWE',
-  Asia => 'ASI',
   Italy => 'ITA',
+  Australia => 'AUS',
+  Netherlands => 'HOL',
+  Asia => 'ASI',
   China => 'CHN',
-  Netherlands => 'HOL'
 );
 
 ############################
@@ -104,8 +106,9 @@ my $doc = $parser->parse_file($ARGV[0]);
 
 my %region;
 # find all region
-map { $region{$_->toString()} = 1 } $doc->findnodes('/datafile/game/release/@region');
-map { say STDERR $_ } keys %region;
+map { $region{$_->toString()} ++ } $doc->findnodes('/datafile/game/release/@region');
+say STDERR "Region count in input datfile:";
+map { say STDERR "$_ = $region{$_}" } keys %region;
 
 ############################
 # Some entries don't have a Release...
@@ -118,7 +121,7 @@ map { say STDERR $_ } keys %region;
   my @nodes = $doc->findnodes($xpath);
   if ($skip_empty_release) {
     say STDERR ' -> ' . (scalar @nodes) . ' groups removed.';
-    map { $_->unlinkNode() } @nodes;
+    map { say STDERR " x " . $_->getAttribute('name') if DEBUG; $_->unlinkNode() } @nodes;
   } else {
     # Try to infer a release from the title.
     foreach my $game (@nodes) {
@@ -144,7 +147,7 @@ map { say STDERR $_ } keys %region;
           {
             my $node = XML::LibXML::Element->new("release");
             $node->setAttribute('name',$name);
-            $node->setAttribute('region',$title_to_region($region));
+            $node->setAttribute('region',$title_to_region{$region});
             $game->addChild($node);
             last;
           }
@@ -165,11 +168,10 @@ if (scalar @skip_titles)
     join(' or ',
       map { 'contains(./@name, "' . $_ . '")' } @skip_titles) .
     ']';
-  #say STDERR ' . delete($xpath)' if ($debug);
 
   my @nodes = $doc->findnodes($xpath);
   say STDERR ' -> ' . (scalar @nodes) . ' groups removed.';
-  map { $_->unlinkNode() } @nodes;
+  map { say STDERR " x " . $_->getAttribute('name') if DEBUG; $_->unlinkNode() } @nodes;
 }
 
 ############################
@@ -183,13 +185,13 @@ if (scalar @skip_region)
     join(' or ',
       map { './@region="' . $_ . '"' } @skip_region) .
     ')]';
-  #say STDERR ' . select($xpath)' if ($debug);
 
   # Delete releases that match problem text
   my @nodes = $doc->findnodes($xpath);
   say STDERR ' -> ' . (scalar @nodes) . ' groups removed.';
   foreach my $release (@nodes) {
     my $parent = $release->parentNode;
+    say STDERR " x " . $release->getAttribute('name') if DEBUG; 
     $release->unlinkNode();
     # Check parent to see if any other Release exists
     if (!$parent->exists('./release')) {
@@ -237,7 +239,7 @@ if (scalar @preferred_region)
 
     if ($parent ne $best_title)
     {
-      say STDERR " . BAD: $parent => $best_title (" . (scalar @candidates) . ")" if $debug;
+      say STDERR " . BAD: $parent => $best_title (" . (scalar @candidates) . " in group)" if DEBUG;
       # Need to move the cloneof to somewhere else
       for(my $i = 0; $i < scalar @candidates; $i ++)
       {
@@ -250,7 +252,7 @@ if (scalar @preferred_region)
         }
       }
     } else {
-      say STDERR " . OK: $parent" if $debug;
+      say STDERR " . OK: $parent" if DEBUG;
     }
   }
 }
