@@ -104,11 +104,23 @@ my $parser = XML::LibXML->new();
 $parser->keep_blanks(0);
 my $doc = $parser->parse_file($ARGV[0]);
 
-my %region;
-# find all region
-map { $region{$_->toString()} ++ } $doc->findnodes('/datafile/game/release/@region');
-say STDERR "Region count in input datfile:";
-map { say STDERR "$_ = $region{$_}" } keys %region;
+# Input file counts
+{
+  # number of groups (games)
+  my @groups = $doc->findnodes('/datafile/game');
+  say STDERR "Group count in input datafile: " . scalar @groups;
+
+  # region for all releases
+  my @releases = $doc->findnodes('/datafile/game/release/@region');
+  say STDERR "Release count in input datfile: " . scalar @releases;
+
+  if (DEBUG) {
+    my %region;
+    map { $region{$_->toString()} ++ } @releases;
+    say STDERR "Region / release count in input datfile:";
+    map { say STDERR "$_ = $region{$_}" } keys %region;
+  }
+}
 
 ############################
 # Some entries don't have a Release...
@@ -120,14 +132,15 @@ map { say STDERR "$_ = $region{$_}" } keys %region;
 
   my @nodes = $doc->findnodes($xpath);
   if ($skip_empty_release) {
-    say STDERR ' -> ' . (scalar @nodes) . ' groups removed.';
     map { say STDERR " x " . $_->getAttribute('name') if DEBUG; $_->unlinkNode() } @nodes;
+    say STDERR ' -> ' . (scalar @nodes) . ' groups removed.';
   } else {
     # Try to infer a release from the title.
     foreach my $game (@nodes) {
       my $name = $game->getAttribute('name');
       if ($name =~ m/\(World\)/)
       {
+        # "World" release is currently classified as these three regions.
         my $node = XML::LibXML::Element->new("release");
         $node->setAttribute('name',$name);
         $node->setAttribute('region','JPN');
@@ -141,6 +154,7 @@ map { say STDERR "$_ = $region{$_}" } keys %region;
         $node->setAttribute('region','EUR');
         $game->addChild($node);
       } else {
+        # Try to get a Region abbrev. back from the title.
         foreach my $region (keys %title_to_region)
         {
           if ($name =~ m/\([^)]*$region[^(]*\)/)
@@ -162,7 +176,7 @@ map { say STDERR "$_ = $region{$_}" } keys %region;
 #  (proto, sample, beta, etc)
 if (scalar @skip_titles)
 {
-  say STDERR 'Removing bad game groups...';
+  say STDERR 'Removing disliked title groups...';
   # Assemble search path
   my $xpath = '/datafile/game[' .
     join(' or ',
@@ -170,8 +184,8 @@ if (scalar @skip_titles)
     ']';
 
   my @nodes = $doc->findnodes($xpath);
-  say STDERR ' -> ' . (scalar @nodes) . ' groups removed.';
   map { say STDERR " x " . $_->getAttribute('name') if DEBUG; $_->unlinkNode() } @nodes;
+  say STDERR ' -> ' . (scalar @nodes) . ' groups removed.';
 }
 
 ############################
@@ -187,18 +201,24 @@ if (scalar @skip_region)
     ')]';
 
   # Delete releases that match problem text
+  my $empty_groups = 0;
+
   my @nodes = $doc->findnodes($xpath);
-  say STDERR ' -> ' . (scalar @nodes) . ' groups removed.';
   foreach my $release (@nodes) {
     my $parent = $release->parentNode;
-    say STDERR " x " . $release->getAttribute('name') if DEBUG; 
+    #say STDERR " x " . $release->getAttribute('name') if DEBUG;
     $release->unlinkNode();
+
     # Check parent to see if any other Release exists
     if (!$parent->exists('./release')) {
       # This was only release, so remove Parent above.
+      say STDERR " x " . $release->getAttribute('name') if DEBUG;
+      $empty_groups ++;
       $parent->unlinkNode();
     }
   }
+  say STDERR ' -> ' . (scalar @nodes) . ' releases removed.';
+  say STDERR ' -> ' . $empty_groups . ' groups removed.';
 }
 
 ############################
