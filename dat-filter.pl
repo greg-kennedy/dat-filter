@@ -68,6 +68,32 @@ sub score_title
   return $score;
 }
 
+# do basic / extended counts for an input xml
+#  run once at start and once at end
+sub counts
+{
+  my $doc = shift;
+
+  # number of groups (games)
+  my @groups = $doc->findnodes('/datafile/game');
+  say STDERR "Group count in datafile: " . scalar @groups;
+
+  # region for all releases
+  my @releases = $doc->findnodes('/datafile/game/release/@region');
+  say STDERR "Release count in datfile: " . scalar @releases;
+
+  # number of clones
+  my @clones =  $doc->findnodes('/datafile/game[@cloneof]');
+  say STDERR "Clone count in datfile: " . scalar @clones;
+
+  if (DEBUG) {
+    my %region;
+    map { $region{$_->toString()} ++ } @releases;
+    say STDERR "Region / release count in datfile:";
+    map { say STDERR "$_ = $region{$_}" } keys %region;
+  }
+}
+
 ############################
 if (scalar @ARGV != 1) {
   die "Usage: $0 datfile\n";
@@ -105,22 +131,8 @@ $parser->keep_blanks(0);
 my $doc = $parser->parse_file($ARGV[0]);
 
 # Input file counts
-{
-  # number of groups (games)
-  my @groups = $doc->findnodes('/datafile/game');
-  say STDERR "Group count in input datafile: " . scalar @groups;
-
-  # region for all releases
-  my @releases = $doc->findnodes('/datafile/game/release/@region');
-  say STDERR "Release count in input datfile: " . scalar @releases;
-
-  if (DEBUG) {
-    my %region;
-    map { $region{$_->toString()} ++ } @releases;
-    say STDERR "Region / release count in input datfile:";
-    map { say STDERR "$_ = $region{$_}" } keys %region;
-  }
-}
+say STDERR "Input counts:";
+counts($doc);
 
 ############################
 # Some entries don't have a Release...
@@ -276,6 +288,10 @@ if (scalar @preferred_region)
     }
   }
 }
+
+# Output file counts
+say STDERR "Output counts:";
+counts($doc);
 
 ############################
 # dump new XML
