@@ -8,6 +8,7 @@ use XML::LibXML;
 ############################
 # Global config values
 my $skip_empty_release = 1;
+my $skip_clones = 1;
 my @skip_titles;
 my @skip_region;
 my @preferred_region;
@@ -104,23 +105,25 @@ if (scalar @ARGV != 1) {
 # Regions we don't want
 # Preferred release
 open (my $fp, '<', 'config.txt') or die "Can't open config.txt: $!\n";
-my $mode = '';
+my $mode = 0;
 while (my $line = <$fp>)
 {
   chomp $line;
   $line =~ s/\s*#.*//g;
   next if $line eq '';
 
-  if ($line eq 'NO_RELEASE') { $mode = 1; }
-  elsif ($line eq 'SKIP_TITLES') { $mode = 2; }
-  elsif ($line eq 'SKIP_REGIONS') { $mode = 3; }
-  elsif ($line eq 'PREFERRED_REGIONS') { $mode = 4; }
+  if ($line eq 'NO_RELEASE') { $mode = 1 }
+  elsif ($line eq 'CLONE') { $mode = 2 }
+  elsif ($line eq 'SKIP_TITLES') { $mode = 3 }
+  elsif ($line eq 'SKIP_REGIONS') { $mode = 4 }
+  elsif ($line eq 'PREFERRED_REGIONS') { $mode = 5 }
   else {
-    if ($mode == 1) { if ($line eq 'INFER') { $skip_empty_release = 0; } }
-    elsif ($mode == 2) { push (@skip_titles, $line); }
-    elsif ($mode == 3) { push (@skip_region, $line); }
-    elsif ($mode == 4) { push (@preferred_region, $line); }
-    else { say STDERR "Unknown line '$line' in config.txt."; }
+    if ($mode == 1) { if ($line eq 'INFER') { $skip_empty_release = 0 } }
+    elsif ($mode == 2) { if ($line eq 'KEEP') { $skip_clones = 0 } }
+    elsif ($mode == 3) { push (@skip_titles, $line) }
+    elsif ($mode == 4) { push (@skip_region, $line) }
+    elsif ($mode == 5) { push (@preferred_region, $line) }
+    else { say STDERR "Unknown line '$line' in config.txt (section $mode)." }
   }
 }
 close($fp);
@@ -280,7 +283,13 @@ if (scalar @preferred_region)
         {
           $node->removeAttribute('cloneof');
         } else {
-          $node->setAttribute('cloneof' => $best_title);
+          if (! $skip_clones) {
+            # Keep Clones mode
+            $node->setAttribute('cloneof' => $best_title);
+          } else {
+            # Drop Clones mode
+            $node->unlinkNode();
+          }
         }
       }
     } else {
