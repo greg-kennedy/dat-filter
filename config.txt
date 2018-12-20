@@ -41,6 +41,10 @@ ITA
 CHN
 HOL
 
+# Languages we DO want (these supersede excluded regions, above)
+KEEP_LANGUAGES
+En
+
 # Preferred release, in descending order
 PREFERRED_REGIONS
 USA

@@ -11,6 +11,7 @@ my $skip_empty_release = 1;
 my $skip_clones = 1;
 my @skip_titles;
 my @skip_regions;
+my @keep_languages;
 my @preferred_regions;
 
 # Debug Output
@@ -116,13 +117,15 @@ while (my $line = <$fp>)
   elsif ($line eq 'CLONES') { $mode = 2 }
   elsif ($line eq 'SKIP_TITLES') { $mode = 3 }
   elsif ($line eq 'SKIP_REGIONS') { $mode = 4 }
-  elsif ($line eq 'PREFERRED_REGIONS') { $mode = 5 }
+  elsif ($line eq 'KEEP_LANGUAGES') { $mode = 5 }
+  elsif ($line eq 'PREFERRED_REGIONS') { $mode = 6 }
   else {
     if ($mode == 1) { if ($line eq 'INFER') { $skip_empty_release = 0 } }
     elsif ($mode == 2) { if ($line eq 'KEEP') { $skip_clones = 0 } }
     elsif ($mode == 3) { push (@skip_titles, $line) }
     elsif ($mode == 4) { push (@skip_regions, $line) }
-    elsif ($mode == 5) { push (@preferred_regions, $line) }
+    elsif ($mode == 5) { push (@keep_languages, $line) }
+    elsif ($mode == 6) { push (@preferred_regions, $line) }
     else { say STDERR "Unknown line '$line' in config.txt (section $mode)." }
   }
 }
@@ -216,13 +219,26 @@ if (scalar @skip_regions)
     ')]';
 
   # Delete releases that match problem text
+  my $kept_releases = 0;
   my $removed_releases = 0;
   my $empty_groups = 0;
 
   my @nodes = $doc->findnodes($xpath);
+release:
   foreach my $release (@nodes) {
+    # Test each title vs the KEPT_LANGUAGE list to see if this will
+    #  be preserved despite wrong region
+    my $title = $release->getAttribute('name');
+    foreach my $lang (@keep_languages) {
+      if ($title =~ m/\s\([\)]*\Q$lang\E[\(]*\)/) {
+        say STDERR '   ' . $title if DEBUG;
+        $kept_releases ++;
+        next release;
+      }
+    }
+
     my $parent = $release->parentNode;
-    #say STDERR " x " . $release->getAttribute('name') if DEBUG;
+    #say STDERR " x " . $title if DEBUG;
     $removed_releases ++;
     $release->unlinkNode();
 
@@ -234,6 +250,7 @@ if (scalar @skip_regions)
       $parent->unlinkNode();
     }
   }
+  say STDERR ' -> ' . $kept_releases . ' releases KEPT.';
   say STDERR ' -> ' . $removed_releases . ' releases removed.';
   say STDERR ' -> ' . $empty_groups . ' groups removed.';
 }
