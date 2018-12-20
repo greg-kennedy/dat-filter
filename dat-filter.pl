@@ -10,8 +10,8 @@ use XML::LibXML;
 my $skip_empty_release = 1;
 my $skip_clones = 1;
 my @skip_titles;
-my @skip_region;
-my @preferred_region;
+my @skip_regions;
+my @preferred_regions;
 
 # Debug Output
 use constant DEBUG => 0;
@@ -53,16 +53,16 @@ sub score_title
   }
 
   my $score = 0;
-  for (my $i = 0; $i < scalar @preferred_region; $i ++) {
-    my $reg = $preferred_region[$i];
-    if ($title =~ m/\([^)]*$reg[^(]*\)/) {
+  for (my $i = 0; $i < scalar @preferred_regions; $i ++) {
+    my $reg = $preferred_regions[$i];
+    if ($title =~ m/\s\([^)]*\Q$reg\E[^(]*\)/) {
       $score = (10000 - 100 * $i);
       last;
     }
   }
 
   # rev check
-  if ($title =~ m/\(Rev ([^)]+)\)/) {
+  if ($title =~ m/\s\(Rev ([^)]+)\)/) {
     $score += ord($1);
   }
 
@@ -109,11 +109,11 @@ my $mode = 0;
 while (my $line = <$fp>)
 {
   chomp $line;
-  $line =~ s/\s*#.*//g;
+  $line =~ s/\s*#.*$//;
   next if $line eq '';
 
   if ($line eq 'NO_RELEASE') { $mode = 1 }
-  elsif ($line eq 'CLONE') { $mode = 2 }
+  elsif ($line eq 'CLONES') { $mode = 2 }
   elsif ($line eq 'SKIP_TITLES') { $mode = 3 }
   elsif ($line eq 'SKIP_REGIONS') { $mode = 4 }
   elsif ($line eq 'PREFERRED_REGIONS') { $mode = 5 }
@@ -121,8 +121,8 @@ while (my $line = <$fp>)
     if ($mode == 1) { if ($line eq 'INFER') { $skip_empty_release = 0 } }
     elsif ($mode == 2) { if ($line eq 'KEEP') { $skip_clones = 0 } }
     elsif ($mode == 3) { push (@skip_titles, $line) }
-    elsif ($mode == 4) { push (@skip_region, $line) }
-    elsif ($mode == 5) { push (@preferred_region, $line) }
+    elsif ($mode == 4) { push (@skip_regions, $line) }
+    elsif ($mode == 5) { push (@preferred_regions, $line) }
     else { say STDERR "Unknown line '$line' in config.txt (section $mode)." }
   }
 }
@@ -153,7 +153,7 @@ counts($doc);
     # Try to infer a release from the title.
     foreach my $game (@nodes) {
       my $name = $game->getAttribute('name');
-      if ($name =~ m/\(World\)/)
+      if ($name =~ m/\s\(World\)/)
       {
         # "World" release is currently classified as these three regions.
         my $node = XML::LibXML::Element->new("release");
@@ -172,7 +172,7 @@ counts($doc);
         # Try to get a Region abbrev. back from the title.
         foreach my $region (keys %title_to_region)
         {
-          if ($name =~ m/\([^)]*$region[^(]*\)/)
+          if ($name =~ m/\s\([^)]*\Q$region\E[^(]*\)/)
           {
             my $node = XML::LibXML::Element->new("release");
             $node->setAttribute('name',$name);
@@ -206,39 +206,41 @@ if (scalar @skip_titles)
 ############################
 # XPath search for regions to skip
 #  (JPN etc region ... except with En language)
-if (scalar @skip_region)
+if (scalar @skip_regions)
 {
   say STDERR 'Removing disliked regions...';
   # Assemble search path
-  my $xpath = '/datafile/game/release[not(contains(@name,"(En")) and (' .
+  my $xpath = '/datafile/game/release[(' .
     join(' or ',
-      map { './@region="' . $_ . '"' } @skip_region) .
+      map { './@region="' . $_ . '"' } @skip_regions) .
     ')]';
 
   # Delete releases that match problem text
+  my $removed_releases = 0;
   my $empty_groups = 0;
 
   my @nodes = $doc->findnodes($xpath);
   foreach my $release (@nodes) {
     my $parent = $release->parentNode;
     #say STDERR " x " . $release->getAttribute('name') if DEBUG;
+    $removed_releases ++;
     $release->unlinkNode();
 
     # Check parent to see if any other Release exists
     if (!$parent->exists('./release')) {
       # This was only release, so remove Parent above.
-      say STDERR " x " . $release->getAttribute('name') if DEBUG;
+      say STDERR " x " . $parent->getAttribute('name') if DEBUG;
       $empty_groups ++;
       $parent->unlinkNode();
     }
   }
-  say STDERR ' -> ' . (scalar @nodes) . ' releases removed.';
+  say STDERR ' -> ' . $removed_releases . ' releases removed.';
   say STDERR ' -> ' . $empty_groups . ' groups removed.';
 }
 
 ############################
 # XPath search for "cloneof" and parent.
-if (scalar @preferred_region)
+if (scalar @preferred_regions)
 {
   say STDERR 'Searching for all Clones...';
   my %clones;

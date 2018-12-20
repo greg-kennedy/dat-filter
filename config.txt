@@ -8,7 +8,7 @@ NO_RELEASE
 SKIP
 
 # Clone handling (choose either KEEP or DROP)
-CLONE
+CLONES
 KEEP
 
 # Title fragments to skip.
