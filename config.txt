@@ -13,7 +13,6 @@ KEEP
 
 # Title fragments to skip.
 SKIP_TITLES
- [BIOS]
  (Beta
  (Proto
  Proto)
@@ -23,12 +22,25 @@ SKIP_TITLES
  (Demo)
  (Unl)
  (NP)
+ (Enhancement Chip)
  (GamesMaster Special Edition)
-PowerFest 94 
+# Test Cartridges
+Aging Cassette
+Test Cassette
+Test Cartridge
 World Class Service Super Nintendo Tester 
+Cassette Kensaki - NUS-you S Cassette 
+# Weird addons
+Miracle Piano Teaching System
+Super Game Boy 
+XBAND 
+# Competition carts
+PowerFest 94 
 Donkey Kong Country - Competition Cartridge 
 Super Star Fox Weekend 
-XBAND 
+# Multicarts
+Exertainment Mountain Bike Rally + Speed Racer 
+Super Mario All-Stars + Super Mario World 
 
 # Regions we don't want
 SKIP_REGIONS
