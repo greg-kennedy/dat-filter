@@ -3,6 +3,7 @@ use v5.010;
 use strict;
 use warnings;
 
+# needed to read the DAT file
 use XML::LibXML;
 
 ############################
@@ -173,6 +174,7 @@ counts($doc);
         $game->addChild($node);
       } else {
         # Try to get a Region abbrev. back from the title.
+        my $got_region = 0;
         foreach my $region (keys %title_to_region)
         {
           if ($name =~ m/\s\([^)]*\Q$region\E[^(]*\)/)
@@ -181,8 +183,12 @@ counts($doc);
             $node->setAttribute('name',$name);
             $node->setAttribute('region',$title_to_region{$region});
             $game->addChild($node);
+            $got_region = 1;
             last;
           }
+        }
+        if (! $got_region) {
+          die "Tried to infer region for $name, couldn't find one!";
         }
       }
     }

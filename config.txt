@@ -5,7 +5,7 @@
 
 # No-release handling (choose either SKIP or INFER)
 NO_RELEASE
-SKIP
+INFER
 
 # Clone handling (choose either KEEP or DROP)
 CLONES
@@ -13,18 +13,22 @@ KEEP
 
 # Title fragments to skip.
 SKIP_TITLES
-[BIOS]
-(Beta
-(Proto
-(Sample)
-[b]
-(Arcade)
-(Demo)
-(Unl)
-PowerFest
-Tester
-XBAND
-(NP)
+ [BIOS]
+ (Beta
+ (Proto
+ Proto)
+ (Sample)
+ [b]
+ (Arcade)
+ (Demo)
+ (Unl)
+ (NP)
+ (GamesMaster Special Edition)
+PowerFest 94 
+World Class Service Super Nintendo Tester 
+Donkey Kong Country - Competition Cartridge 
+Super Star Fox Weekend 
+XBAND 
 
 # Regions we don't want
 SKIP_REGIONS
