@@ -10,5 +10,5 @@ All control is user-driven via the config.txt file.
 
 ## Usage
 * Edit config.txt and set options
-* ./rom-filter.txt dat-file-name.dat > pruned-dat-file.dat
+* `./dat-filter.pl dat-file-name.dat > pruned-dat-file.dat`
 * Load pruned-dat-file.dat into your ROM management tool.
